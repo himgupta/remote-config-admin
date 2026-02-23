@@ -68,10 +68,13 @@ This project provides a secure, web-based admin dashboard to manage the maintena
     ```bash
     firebase deploy
     ```
-    This will deploy:
-    - Firestore Security Rules
-    - Cloud Functions (`updateConfig`)
-    - Frontend to Firebase Hosting
+    This will automatically:
+    1. Install frontend dependencies.
+    2. Build the frontend application.
+    3. Deploy:
+       - Firestore Security Rules
+       - Cloud Functions (`updateConfig`)
+       - Frontend to Firebase Hosting
 
 ## Usage
 

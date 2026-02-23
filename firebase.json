@@ -19,6 +19,9 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "predeploy": [
+      "npm --prefix frontend install && npm --prefix frontend run build"
+    ],
     "rewrites": [
       {
         "source": "**",
