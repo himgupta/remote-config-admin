@@ -6,6 +6,14 @@ const { getFirestore } = require("firebase-admin/firestore");
 admin.initializeApp();
 
 exports.updateConfig = functions.https.onCall(async (data, context) => {
+  // 0. Verify App Check
+  if (!context.app) {
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "The function must be called from an App Check verified app."
+    );
+  }
+
   // 1. Verify Authentication
   if (!context.auth) {
     throw new functions.https.HttpsError(
