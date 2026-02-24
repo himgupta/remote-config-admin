@@ -63,7 +63,14 @@ This project provides a secure, web-based admin dashboard to manage the maintena
     ```
     Select your project alias (e.g., `default`).
 
-2.  **Deploy Everything**:
+2.  **Configure Hosting Target**:
+    This project is configured to deploy to a hosting target named `nudge`. Run the following command to link this target to your Firebase Hosting site:
+    ```bash
+    firebase target:apply hosting nudge <your-hosting-site-name>
+    ```
+    *Replace `<your-hosting-site-name>` with the site ID from your Firebase Console (Hosting tab).*
+
+3.  **Deploy Everything**:
     Run the following command from the root directory:
     ```bash
     firebase deploy
