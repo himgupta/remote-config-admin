@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useForm } from "react-hook-form";
-import { functions, remoteConfig } from "./firebase";
+import { functions, remoteConfig, db } from "./firebase";
 import { httpsCallable } from "firebase/functions";
 import { fetchAndActivate, getValue } from "firebase/remote-config";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import AuditLogs from "./AuditLogs";
 import AdminPanel from "./AdminPanel";
 import RequestAccess from "./RequestAccess";
+import SuggestionDropdown from "./SuggestionDropdown";
 
 export default function Dashboard() {
   const { currentUser, logout, isWhitelisted, role } = useAuth();
@@ -14,8 +16,10 @@ export default function Dashboard() {
   const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState(null);
   const [activeTab, setActiveTab] = useState("config"); // "config" or "admin"
+  const [titleSuggestions, setTitleSuggestions] = useState([]);
+  const [messageSuggestions, setMessageSuggestions] = useState([]);
 
-  const { register, handleSubmit, watch, reset } = useForm({
+  const { register, handleSubmit, watch, reset, setValue } = useForm({
     defaultValues: {
       enabled: false,
       title: "",
@@ -49,6 +53,33 @@ export default function Dashboard() {
       loadConfig();
     }
   }, [reset, isWhitelisted]);
+
+  useEffect(() => {
+    async function fetchHistory() {
+      if (!isWhitelisted) return;
+      try {
+        const q = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"), limit(50));
+        const snapshot = await getDocs(q);
+        const titles = new Set();
+        const messages = new Set();
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.newConfig) {
+            if (data.newConfig.title) titles.add(data.newConfig.title);
+            if (data.newConfig.message) messages.add(data.newConfig.message);
+            if (data.newConfig.journey?.dashboard?.title) titles.add(data.newConfig.journey.dashboard.title);
+            if (data.newConfig.journey?.dashboard?.message) messages.add(data.newConfig.journey.dashboard.message);
+          }
+        });
+        setTitleSuggestions(Array.from(titles).filter(Boolean));
+        setMessageSuggestions(Array.from(messages).filter(Boolean));
+      } catch (err) {
+        console.error("Error fetching history suggestions", err);
+      }
+    }
+    fetchHistory();
+  }, [isWhitelisted]);
 
   const onSubmit = async (data) => {
     if (role !== "admin") return;
@@ -147,12 +178,18 @@ export default function Dashboard() {
                     {/* Global Message */}
                     <div className={`space-y-4 ${isReadOnly ? 'opacity-70' : ''}`}>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Global Title</label>
-                        <input type="text" {...register("title")} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="block text-sm font-medium text-gray-700">Global Title</label>
+                          {!isReadOnly && <SuggestionDropdown suggestions={titleSuggestions} onSelect={(val) => setValue("title", val)} />}
+                        </div>
+                        <input type="text" {...register("title")} disabled={isReadOnly} className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Global Message</label>
-                        <textarea {...register("message")} rows={3} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="block text-sm font-medium text-gray-700">Global Message</label>
+                          {!isReadOnly && <SuggestionDropdown suggestions={messageSuggestions} onSelect={(val) => setValue("message", val)} />}
+                        </div>
+                        <textarea {...register("message")} rows={3} disabled={isReadOnly} className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                       </div>
                     </div>
 
@@ -179,12 +216,18 @@ export default function Dashboard() {
 
                       <div className={`space-y-4 pl-6 border-l-2 border-gray-200 ${!watch("journey.dashboard.enabled") ? "opacity-50" : ""}`}>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">Dashboard Title</label>
-                        <input type="text" {...register("journey.dashboard.title")} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="block text-sm font-medium text-gray-700">Dashboard Title</label>
+                            {!isReadOnly && <SuggestionDropdown suggestions={titleSuggestions} onSelect={(val) => setValue("journey.dashboard.title", val)} />}
+                          </div>
+                          <input type="text" {...register("journey.dashboard.title")} disabled={isReadOnly} className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">Dashboard Message</label>
-                        <textarea {...register("journey.dashboard.message")} rows={2} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="block text-sm font-medium text-gray-700">Dashboard Message</label>
+                            {!isReadOnly && <SuggestionDropdown suggestions={messageSuggestions} onSelect={(val) => setValue("journey.dashboard.message", val)} />}
+                          </div>
+                          <textarea {...register("journey.dashboard.message")} rows={2} disabled={isReadOnly} className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                         </div>
                       </div>
                     </div>
