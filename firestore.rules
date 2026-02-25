@@ -5,14 +5,30 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Whitelist collection: Only readable by authenticated users (to check if they are in it?
-    // Actually, usually admin SDK manages this, but frontend might need to check self).
-    // For now, let's keep it restrictive and refine in the backend step.
-    match /whitelist/{email} {
-      allow read: if request.auth != null && request.auth.token.email == email;
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/whitelist/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/whitelist/$(request.auth.token.email)).data.role == "admin";
     }
 
-    // Audit logs: Only writable by backend (Admin SDK bypasses rules), readable by whitelisted users.
+    // Whitelist collection
+    match /whitelist/{email} {
+      // Allow user to read their own entry
+      allow read: if request.auth != null && request.auth.token.email == email;
+      // Allow admins to read any entry (needed for listing users)
+      allow read: if isAdmin();
+    }
+
+    // Access Requests collection
+    match /access_requests/{email} {
+      // Anyone authenticated can create a request for themselves
+      allow create: if request.auth != null && request.auth.token.email == email;
+      // Admins can read all requests
+      allow read: if isAdmin();
+    }
+
+    // Audit logs: Readable by whitelisted users.
     match /audit_logs/{log} {
        allow read: if request.auth != null &&
          exists(/databases/$(database)/documents/whitelist/$(request.auth.token.email));
