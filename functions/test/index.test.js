@@ -38,6 +38,14 @@ describe('Cloud Functions', () => {
     assert(typeof myFunctions.updateConfig === 'function');
   });
 
+  it('should export requestAccess function', () => {
+    assert(typeof myFunctions.requestAccess === 'function');
+  });
+
+  it('should export manageWhitelist function', () => {
+    assert(typeof myFunctions.manageWhitelist === 'function');
+  });
+
   // Since we cannot easily mock the modular imports (getRemoteConfig, getFirestore)
   // without proxyquire in this simple setup, we will skip deep logic testing here
   // and rely on manual verification and code review.

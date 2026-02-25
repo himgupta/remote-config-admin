@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -13,6 +14,7 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isWhitelisted, setIsWhitelisted] = useState(false);
+  const [role, setRole] = useState(null);
 
   function login() {
     return signInWithPopup(auth, googleProvider);
@@ -30,19 +32,24 @@ export function AuthProvider({ children }) {
         try {
           const userDoc = await getDoc(doc(db, "whitelist", user.email));
           if (userDoc.exists()) {
+            const data = userDoc.data();
             setIsWhitelisted(true);
+            setRole(data.role || "viewer");
             setCurrentUser(user);
           } else {
             setIsWhitelisted(false);
+            setRole(null);
             setCurrentUser(user); // Still set user so we can show "Not authorized" screen
           }
         } catch (error) {
           console.error("Error checking whitelist:", error);
           setIsWhitelisted(false);
+          setRole(null);
         }
       } else {
         setCurrentUser(null);
         setIsWhitelisted(false);
+        setRole(null);
       }
       setLoading(false);
     });
@@ -53,6 +60,7 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     isWhitelisted,
+    role,
     login,
     logout,
     loading
