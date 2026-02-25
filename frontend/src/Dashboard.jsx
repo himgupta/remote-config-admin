@@ -51,6 +51,7 @@ export default function Dashboard() {
   }, [reset, isWhitelisted]);
 
   const onSubmit = async (data) => {
+    if (role !== "admin") return;
     setUpdating(true);
     setMessage(null);
     try {
@@ -69,6 +70,8 @@ export default function Dashboard() {
   if (!isWhitelisted) {
     return <RequestAccess />;
   }
+
+  const isReadOnly = role !== "admin";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -123,38 +126,43 @@ export default function Dashboard() {
                   <p>Loading configuration...</p>
                 ) : (
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    {isReadOnly && (
+                      <div className="p-4 mb-4 text-yellow-700 bg-yellow-100 rounded">
+                        You have read-only access. Only administrators can change the configuration.
+                      </div>
+                    )}
 
                     {/* Global Toggle */}
-                    <div className="flex items-center justify-between p-4 border rounded bg-gray-50">
+                    <div className={`flex items-center justify-between p-4 border rounded bg-gray-50 ${isReadOnly ? 'opacity-70' : ''}`}>
                       <div>
                         <h3 className="font-medium text-gray-900">Maintenance Mode</h3>
                         <p className="text-sm text-gray-500">Master switch for the entire application.</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" {...register("enabled")} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <input type="checkbox" {...register("enabled")} disabled={isReadOnly} className="sr-only peer" />
+                        <div className={`w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isReadOnly ? 'peer-checked:bg-gray-400' : 'peer-checked:bg-blue-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300'}`}></div>
                       </label>
                     </div>
 
                     {/* Global Message */}
-                    <div className="space-y-4">
+                    <div className={`space-y-4 ${isReadOnly ? 'opacity-70' : ''}`}>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Global Title</label>
-                        <input type="text" {...register("title")} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                        <input type="text" {...register("title")} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Global Message</label>
-                        <textarea {...register("message")} rows={3} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                        <textarea {...register("message")} rows={3} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                       </div>
                     </div>
 
                     <hr />
 
                     {/* Login Screen Config */}
-                    <div>
+                  <div className={isReadOnly ? 'opacity-70' : ''}>
                       <h3 className="mb-2 text-lg font-medium text-gray-900">Login Screen</h3>
                       <div className="flex items-center space-x-2">
-                        <input type="checkbox" {...register("journey.login.enabled")} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                      <input type="checkbox" {...register("journey.login.enabled")} disabled={isReadOnly} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                         <label className="text-sm font-medium text-gray-700">Enable Maintenance on Login</label>
                       </div>
                     </div>
@@ -162,25 +170,26 @@ export default function Dashboard() {
                     <hr />
 
                     {/* Dashboard Screen Config */}
-                    <div>
+                  <div className={isReadOnly ? 'opacity-70' : ''}>
                       <h3 className="mb-2 text-lg font-medium text-gray-900">Dashboard Screen</h3>
                       <div className="mb-4 flex items-center space-x-2">
-                        <input type="checkbox" {...register("journey.dashboard.enabled")} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                      <input type="checkbox" {...register("journey.dashboard.enabled")} disabled={isReadOnly} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                         <label className="text-sm font-medium text-gray-700">Enable Maintenance on Dashboard</label>
                       </div>
 
                       <div className={`space-y-4 pl-6 border-l-2 border-gray-200 ${!watch("journey.dashboard.enabled") ? "opacity-50" : ""}`}>
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Dashboard Title</label>
-                          <input type="text" {...register("journey.dashboard.title")} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                        <input type="text" {...register("journey.dashboard.title")} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Dashboard Message</label>
-                          <textarea {...register("journey.dashboard.message")} rows={2} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
+                        <textarea {...register("journey.dashboard.message")} rows={2} disabled={isReadOnly} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border" />
                         </div>
                       </div>
                     </div>
 
+                  {!isReadOnly && (
                     <div className="flex justify-end pt-4">
                       <button
                         type="submit"
@@ -190,6 +199,7 @@ export default function Dashboard() {
                         {updating ? 'Activating...' : 'Activate Configuration'}
                       </button>
                     </div>
+                  )}
                   </form>
                 )}
               </div>

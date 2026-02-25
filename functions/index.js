@@ -30,14 +30,14 @@ exports.updateConfig = functions.https.onCall(async (data, context) => {
     );
   }
 
-  // 2. Verify Whitelist
+  // 2. Verify Whitelist & Admin Role
   const db = getFirestore();
-  // Check if the user exists in the whitelist collection.
+  // Check if the user exists in the whitelist collection and is an admin.
   // The document ID should be the email address.
   const whitelistRef = db.collection("whitelist").doc(email);
   const whitelistDoc = await whitelistRef.get();
 
-  if (!whitelistDoc.exists) {
+  if (!whitelistDoc.exists || whitelistDoc.data().role !== "admin") {
     throw new functions.https.HttpsError(
       "permission-denied",
       "User is not authorized to perform this action."
