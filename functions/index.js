@@ -91,6 +91,14 @@ exports.updateConfig = functions.https.onCall(async (data, context) => {
 });
 
 exports.requestAccess = functions.https.onCall(async (data, context) => {
+  // 0. Verify App Check
+  if (!context.app) {
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "The function must be called from an App Check verified app."
+    );
+  }
+
   // 1. Verify Authentication
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -122,6 +130,14 @@ exports.requestAccess = functions.https.onCall(async (data, context) => {
 });
 
 exports.manageWhitelist = functions.https.onCall(async (data, context) => {
+  // 0. Verify App Check
+  if (!context.app) {
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "The function must be called from an App Check verified app."
+    );
+  }
+
   // 1. Verify Authentication
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -143,10 +159,10 @@ exports.manageWhitelist = functions.https.onCall(async (data, context) => {
   }
 
   const { email, role, action } = data;
-  if (!email || !action) {
+  if (!email || typeof email !== "string" || !action || typeof action !== "string") {
     throw new functions.https.HttpsError(
       "invalid-argument",
-      "Email and action are required."
+      "Email and action are required and must be strings."
     );
   }
 
