@@ -86,7 +86,7 @@ describe('appStoreWebhook', () => {
     // Here we just test the invalid hash path (since the actual mock setup for defineSecret
     // can be complex, we just pass an invalid signature that won't match the computed one).
     const req = {
-      headers: { "x-apple-signature": "hmacsha256=invalidhash" },
+      headers: { "x-apple-signature": "invalidhash" },
       rawBody: Buffer.from(JSON.stringify({ data: { type: "webhookPings" } }))
     };
     const res = {

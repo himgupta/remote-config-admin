@@ -222,15 +222,8 @@ exports.appStoreWebhook = functions.https.onRequest({ secrets: [appStoreWebhookS
     const secret = appStoreWebhookSecret.value();
     const payload = req.rawBody.toString('utf8');
 
-    // Apple App Store Connect Webhook format
-    // x-apple-signature:hmacsha256=7f062172b01cb00b53ca068614674a3d982a34062a0f5d37687d5e3377e54657
-    const expectedPrefix = "hmacsha256=";
-    if (!signatureHeader.startsWith(expectedPrefix)) {
-      res.status(401).send("Invalid signature format.");
-      return;
-    }
-
-    const providedHash = signatureHeader.substring(expectedPrefix.length);
+    // Apple App Store Connect Webhook sends raw hex string
+    const providedHash = signatureHeader;
     const computedHash = crypto.createHmac("sha256", secret).update(payload).digest("hex");
 
     // Prevent timing attacks using timingSafeEqual
@@ -257,7 +250,11 @@ exports.appStoreWebhook = functions.https.onRequest({ secrets: [appStoreWebhookS
       const oldValue = attributes.oldValue;
       const version = data.version;
 
-      const message = `*App Store Review Update* 🚀\nState changed from \`${oldValue}\` to \`${newValue}\` (Version: ${version})`;
+      let message = `*App Store Review Update* 🚀\nState changed from \`${oldValue}\` to \`${newValue}\` (Version: ${version})`;
+
+      if (newValue === "REJECTED") {
+        message = `*🚨 App Review REJECTED!* 🚨\nState changed from \`${oldValue}\` to \`${newValue}\` (Version: ${version})\n\n_Please check App Store Connect Resolution Center for the detailed rejection reason._`;
+      }
 
       const slackUrl = slackWebhookUrl.value();
       if (slackUrl) {

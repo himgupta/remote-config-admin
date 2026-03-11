@@ -15,6 +15,42 @@ This project provides a secure, web-based admin dashboard to manage the maintena
 - `frontend/`: React application (Vite + Tailwind CSS).
 - `functions/`: Firebase Cloud Functions (Backend logic).
 
+## App Store Connect Webhook Setup
+
+This project includes a secure Cloud Function (`appStoreWebhook`) to listen for App Store Connect review updates and push notifications to a Slack channel.
+
+### 1. Set Firebase Secrets
+The webhook function requires two secrets to run securely. Run these commands using the Firebase CLI and paste your values when prompted:
+
+```bash
+firebase functions:secrets:set APP_STORE_WEBHOOK_SECRET
+firebase functions:secrets:set SLACK_WEBHOOK_URL
+```
+- `APP_STORE_WEBHOOK_SECRET`: A strong, random string you create (e.g., `my_super_secure_string`).
+- `SLACK_WEBHOOK_URL`: Your incoming Slack Webhook URL.
+
+### 2. Deploy the Webhook
+Deploy the function to get the live endpoint URL:
+```bash
+firebase deploy --only functions:appStoreWebhook
+```
+Once deployed, copy the Function URL from the terminal output (e.g., `https://us-central1-YOUR_PROJECT.cloudfunctions.net/appStoreWebhook`).
+
+### 3. Configure App Store Connect
+1. Log in to [App Store Connect](https://appstoreconnect.apple.com/).
+2. Navigate to **Users and Access** > **Integrations** > **Webhooks**.
+3. Click the **+** button to add a new webhook.
+4. Name it (e.g., "Slack Review Notifications").
+5. Paste your Cloud Function URL into the **URL** field.
+6. Enter the secret you created in Step 1 into the **Secret** field.
+7. Select the **App Version State** event type.
+8. Save.
+
+### 4. Test the Webhook
+App Store Connect provides a "Send Test Notification" button in the Webhook configuration. Clicking this sends a `webhookPings` test event to the function. If everything is configured correctly, it will respond with a `200 OK`.
+
+When an app goes into review or is approved, you will get a Slack message. If an app is **REJECTED**, the webhook will format a special alert directing you to the Resolution Center for the detailed textual rejection reason (since the raw App Store Connect webhook payload does not contain the textual reason itself).
+
 ## Prerequisites
 
 1.  **Firebase Project**: Create a project in the [Firebase Console](https://console.firebase.google.com/).
