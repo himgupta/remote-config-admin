@@ -204,3 +204,77 @@ exports.manageWhitelist = functions.https.onCall(async (data, context) => {
     );
   }
 });
+
+const { defineSecret } = require("firebase-functions/params");
+const crypto = require("crypto");
+
+const appStoreWebhookSecret = defineSecret("APP_STORE_WEBHOOK_SECRET");
+const slackWebhookUrl = defineSecret("SLACK_WEBHOOK_URL");
+
+exports.appStoreWebhook = functions.https.onRequest({ secrets: [appStoreWebhookSecret, slackWebhookUrl] }, async (req, res) => {
+  try {
+    const signatureHeader = req.headers["x-apple-signature"];
+    if (!signatureHeader) {
+      res.status(401).send("Missing signature.");
+      return;
+    }
+
+    const secret = appStoreWebhookSecret.value();
+    const payload = req.rawBody.toString('utf8');
+
+    // Apple App Store Connect Webhook format
+    // x-apple-signature:hmacsha256=7f062172b01cb00b53ca068614674a3d982a34062a0f5d37687d5e3377e54657
+    const expectedPrefix = "hmacsha256=";
+    if (!signatureHeader.startsWith(expectedPrefix)) {
+      res.status(401).send("Invalid signature format.");
+      return;
+    }
+
+    const providedHash = signatureHeader.substring(expectedPrefix.length);
+    const computedHash = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+
+    // Prevent timing attacks using timingSafeEqual
+    if (providedHash.length !== computedHash.length || !crypto.timingSafeEqual(Buffer.from(providedHash), Buffer.from(computedHash))) {
+      console.warn("Signature mismatch.", { providedHash, computedHash });
+      res.status(401).send("Invalid signature.");
+      return;
+    }
+
+    const data = req.body && req.body.data;
+    if (!data) {
+      res.status(400).send("Invalid payload.");
+      return;
+    }
+
+    if (data.type === "webhookPings") {
+      res.status(200).send("Pong");
+      return;
+    }
+
+    if (data.type === "appStoreVersionAppVersionStateUpdated") {
+      const attributes = data.attributes || {};
+      const newValue = attributes.newValue;
+      const oldValue = attributes.oldValue;
+      const version = data.version;
+
+      const message = `*App Store Review Update* 🚀\nState changed from \`${oldValue}\` to \`${newValue}\` (Version: ${version})`;
+
+      const slackUrl = slackWebhookUrl.value();
+      if (slackUrl) {
+        await fetch(slackUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: message }),
+        });
+      }
+      res.status(200).send("Success");
+      return;
+    }
+
+    // Acknowledge other event types without processing
+    res.status(200).send("Event received.");
+  } catch (error) {
+    console.error("Webhook processing error:", error);
+    res.status(500).send("Internal server error.");
+  }
+});
