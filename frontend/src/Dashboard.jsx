@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState(null);
   const [activeTab, setActiveTab] = useState("config"); // "config" or "admin"
+  const [liveConfig, setLiveConfig] = useState(null);
 
   const { register, handleSubmit, watch, reset } = useForm({
     defaultValues: {
@@ -35,6 +36,7 @@ export default function Dashboard() {
         if (configStr) {
           const config = JSON.parse(configStr);
           reset(config); // Update form with fetched values
+          setLiveConfig(config);
         }
       } catch (error) {
         console.error("Error fetching remote config:", error);
@@ -57,7 +59,7 @@ export default function Dashboard() {
       const updateConfigFn = httpsCallable(functions, 'updateConfig');
       await updateConfigFn({ config: data });
       setMessage({ type: "success", text: "Configuration updated successfully!" });
-      // Optionally reload config to be sure
+      setLiveConfig(data); // update live config
     } catch (error) {
       console.error("Error updating config:", error);
       setMessage({ type: "error", text: "Failed to update configuration: " + error.message });
@@ -109,9 +111,51 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
             {/* Main Config Form */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
+
+              {/* Active Nudges (Live Config) */}
+              {!loadingConfig && liveConfig && (
+                <div className="p-6 bg-blue-50 border border-blue-100 rounded-lg shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-blue-900">Active Nudges (Live Configuration)</h2>
+                  <div className="space-y-3 text-sm text-blue-800">
+                    <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                      <span className="font-medium">Global Maintenance:</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${liveConfig.enabled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                        {liveConfig.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                    {liveConfig.enabled && (
+                      <div className="py-2 border-b border-blue-200">
+                        <p><span className="font-medium">Title:</span> {liveConfig.title || 'N/A'}</p>
+                        <p><span className="font-medium">Message:</span> {liveConfig.message || 'N/A'}</p>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                      <span className="font-medium">Login Screen Maintenance:</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${liveConfig.journey?.login?.enabled ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-700'}`}>
+                        {liveConfig.journey?.login?.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="font-medium">Dashboard Maintenance:</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${liveConfig.journey?.dashboard?.enabled ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-700'}`}>
+                        {liveConfig.journey?.dashboard?.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                    {liveConfig.journey?.dashboard?.enabled && (
+                      <div className="py-2">
+                        <p><span className="font-medium">Dashboard Title:</span> {liveConfig.journey?.dashboard?.title || 'N/A'}</p>
+                        <p><span className="font-medium">Dashboard Message:</span> {liveConfig.journey?.dashboard?.message || 'N/A'}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="p-6 bg-white rounded-lg shadow">
-                <h2 className="mb-4 text-lg font-medium text-gray-900">Global Configuration</h2>
+                <h2 className="mb-4 text-lg font-medium text-gray-900">Update Configuration</h2>
 
                 {message && (
                   <div className={`p-4 mb-4 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
