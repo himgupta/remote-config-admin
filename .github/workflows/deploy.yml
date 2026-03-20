@@ -1,0 +1,53 @@
+name: Deploy to Firebase
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            functions/package-lock.json
+
+      - name: Install Root Dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          fi
+
+      - name: Install Frontend Dependencies
+        run: npm ci --prefix frontend
+
+      - name: Install Functions Dependencies
+        run: npm ci --prefix functions
+
+      - name: Build Frontend
+        run: npm run build --prefix frontend
+        # Use GitHub Secrets for production environment variables if needed
+        # env:
+        #   VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        #   ...
+
+      - name: Run Functions Tests
+        run: npm test --prefix functions
+
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --non-interactive
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
